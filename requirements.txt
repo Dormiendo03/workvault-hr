@@ -14,3 +14,4 @@ reportlab==4.0.9
 python-dateutil==2.8.2
 Werkzeug==3.0.1
 gunicorn==21.2.0
+dlib @ https://files.pythonhosted.org/packages/...  # pre-built wheel
