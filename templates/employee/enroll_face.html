@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Face Enrollment - WorkVault{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-camera"></i> Face Enrollment</h4>
+                </div>
+                <div class="card-body">
+                    {% if has_face %}
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle"></i>
+                        Your face is already enrolled in the system.
+                    </div>
+                    <p>You can re-enroll if you want to update your face data.</p>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        Please enroll your face to use the attendance system.
+                    </div>
+                    {% endif %}
+
+                    <div class="text-center mb-4">
+                        <h5>Instructions:</h5>
+                        <ul class="text-start">
+                            <li>Position your face in the center of the camera</li>
+                            <li>Ensure good lighting</li>
+                            <li>Look directly at the camera</li>
+                            <li>Remove glasses if possible</li>
+                            <li>Make sure only your face is visible</li>
+                        </ul>
+                    </div>
+
+                    <div class="text-center mb-4">
+                        <video id="video" width="640" height="480" autoplay class="border rounded"></video>
+                        <canvas id="canvas" style="display:none;"></canvas>
+                    </div>
+
+                    <div class="text-center">
+                        <button type="button" class="btn btn-primary btn-lg" onclick="captureAndEnroll()">
+                            <i class="bi bi-camera"></i> Capture & Enroll
+                        </button>
+                        <a href="{{ url_for('employee.dashboard') }}" class="btn btn-secondary btn-lg">
+                            Cancel
+                        </a>
+                    </div>
+
+                    <div id="message" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let video = document.getElementById('video');
+let canvas = document.getElementById('canvas');
+let context = canvas.getContext('2d');
+
+// Start webcam
+if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function(stream) {
+            video.srcObject = stream;
+        })
+        .catch(function(error) {
+            showMessage('Error accessing webcam: ' + error.message, 'danger');
+        });
+}
+
+function captureAndEnroll() {
+    // Set canvas size to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw video frame to canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Get image data as base64
+    let imageData = canvas.toDataURL('image/jpeg');
+    
+    // Show loading
+    showMessage('Processing face enrollment...', 'info');
+    
+    // Send to server
+    fetch('{{ url_for("employee.enroll_face") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ image: imageData })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage(data.message, 'success');
+            setTimeout(() => {
+                window.location.href = '{{ url_for("employee.dashboard") }}';
+            }, 2000);
+        } else {
+            showMessage(data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        showMessage('Error: ' + error.message, 'danger');
+    });
+}
+
+function showMessage(message, type) {
+    let messageDiv = document.getElementById('message');
+    messageDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+}
+</script>
+{% endblock %}

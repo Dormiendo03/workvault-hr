@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Payroll - WorkVault{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">Payroll Management (Admin)</h2>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin.payroll') }}" class="row g-3">
+                <div class="col-md-5">
+                    <label for="period_start" class="form-label">Period Start</label>
+                    <input type="date" class="form-control" id="period_start" name="period_start" 
+                           value="{{ period_start or '' }}">
+                </div>
+                <div class="col-md-5">
+                    <label for="period_end" class="form-label">Period End</label>
+                    <input type="date" class="form-control" id="period_end" name="period_end" 
+                           value="{{ period_end or '' }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-cash-stack"></i> All Payroll Records</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Department</th>
+                            <th>Period</th>
+                            <th>Base Salary</th>
+                            <th>Days Present</th>
+                            <th>Days Absent</th>
+                            <th>Deductions</th>
+                            <th>Net Salary</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr>
+                            <td>{{ record.users.name if record.users else 'N/A' }}</td>
+                            <td>{{ record.users.department if record.users else 'N/A' }}</td>
+                            <td>{{ record.period_start }} to {{ record.period_end }}</td>
+                            <td>${{ "%.2f"|format(record.base_salary) }}</td>
+                            <td>{{ record.days_present }}</td>
+                            <td>{{ record.days_absent }}</td>
+                            <td class="text-danger">${{ "%.2f"|format(record.deductions) }}</td>
+                            <td class="text-success"><strong>${{ "%.2f"|format(record.net_pay or record.net_salary or 0) }}</strong></td>
+                            <td>
+                                {% if record.status == 'draft' %}
+                                <span class="badge bg-secondary">Draft</span>
+                                {% elif record.status == 'finalized' %}
+                                <span class="badge bg-warning">Finalized</span>
+                                {% elif record.status == 'paid' %}
+                                <span class="badge bg-success">Released/Paid</span>
+                                {% else %}
+                                <span class="badge bg-info">{{ record.status|title }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted">No payroll records found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Dashboard - WorkVault{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">Welcome, {{ current_user.name }}!</h2>
+
+    <div class="row">
+        <!-- Today's Status -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-clock"></i> Today's Attendance</h5>
+                </div>
+                <div class="card-body">
+                    {% if today_status and today_status.clocked_in %}
+                        <div class="mb-3">
+                            <strong>Status:</strong>
+                            <span class="badge bg-{{ 'success' if today_status.status == 'present' else 'warning' }}">
+                                {{ today_status.status|upper }}
+                            </span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Clock In:</strong> {{ today_status.time_in }}
+                        </div>
+                        {% if today_status.clocked_out %}
+                        <div class="mb-3">
+                            <strong>Clock Out:</strong> {{ today_status.time_out }}
+                        </div>
+                        {% else %}
+                        <a href="{{ url_for('employee.clock_in') }}" class="btn btn-danger">
+                            <i class="bi bi-clock"></i> Clock Out
+                        </a>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted">You haven't clocked in today.</p>
+                        <a href="{{ url_for('employee.clock_in') }}" class="btn btn-success">
+                            <i class="bi bi-clock"></i> Clock In Now
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Payroll Preview -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-wallet2"></i> Paycheck Preview</h5>
+                </div>
+                <div class="card-body text-center">
+                    <p class="text-muted mb-3">Preview your estimated paycheck</p>
+                    <a href="{{ url_for('employee.payroll_preview') }}" class="btn btn-success w-100 mb-2">
+                        <i class="bi bi-eye"></i> Current Period
+                    </a>
+                    <a href="{{ url_for('employee.payroll_preview_last') }}" class="btn btn-outline-success w-100 mb-2">
+                        <i class="bi bi-eye"></i> Last Period
+                    </a>
+                    <hr>
+                    <a href="{{ url_for('employee.payroll') }}" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-cash-stack"></i> Payroll History
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leave Balance -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-calendar-x"></i> Leave Balance</h5>
+                </div>
+                <div class="card-body">
+                    <h2 class="text-center">{{ leave_balance }} Days</h2>
+                    <p class="text-center text-muted">Available Leave Days</p>
+                    <a href="{{ url_for('employee.request_leave') }}" class="btn btn-info w-100">
+                        <i class="bi bi-plus-circle"></i> Request Leave
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Attendance -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Recent Attendance (Last 7 Days)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time In</th>
+                                    <th>Time Out</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in recent_attendance %}
+                                <tr>
+                                    <td>{{ record.date }}</td>
+                                    <td>{{ record.time_in }}</td>
+                                    <td>{{ record.time_out or '-' }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if record.status == 'present' else 'warning' }}">
+                                            {{ record.status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">No attendance records</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <a href="{{ url_for('employee.attendance') }}" class="btn btn-outline-primary">
+                        View Full History
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Leave Requests -->
+    {% if pending_leaves %}
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0"><i class="bi bi-hourglass-split"></i> Pending Leave Requests</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Days</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for leave in pending_leaves %}
+                                <tr>
+                                    <td>{{ leave.leave_type|title }}</td>
+                                    <td>{{ leave.start_date }}</td>
+                                    <td>{{ leave.end_date }}</td>
+                                    <td>{{ leave.days_count }}</td>
+                                    <td><span class="badge bg-warning">Pending</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

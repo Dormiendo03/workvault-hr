@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Manage HR Users - WorkVault{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Manage HR Users</h2>
+        <a href="{{ url_for('admin.add_hr_user') }}" class="btn btn-primary">
+            <i class="bi bi-person-plus"></i> Add HR User
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-person-badge"></i> HR User List</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Department</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for hr_user in hr_users %}
+                        <tr>
+                            <td>{{ hr_user.name }}</td>
+                            <td>{{ hr_user.email }}</td>
+                            <td>{{ hr_user.department or 'N/A' }}</td>
+                            <td>
+                                {% if hr_user.is_active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ hr_user.created_at[:10] if hr_user.created_at else 'N/A' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No HR users found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

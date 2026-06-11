@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance - WorkVault{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">Attendance Management (Admin)</h2>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin.attendance') }}" class="row g-3" id="filterForm">
+                <div class="col-md-4">
+                    <label for="start_date" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" 
+                           value="{{ start_date }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="end_date" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" 
+                           value="{{ end_date }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-calendar-check"></i> All Attendance Records</h5>
+            <small class="text-muted" id="lastUpdated">Auto-refreshing...</small>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive" id="attendanceTable">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Department</th>
+                            <th>Date</th>
+                            <th>Time In</th>
+                            <th>Time Out</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr>
+                            <td>{{ record.users.name if record.users else 'N/A' }}</td>
+                            <td>{{ record.users.department if record.users else 'N/A' }}</td>
+                            <td>{{ record.date }}</td>
+                            <td>{{ record.time_in }}</td>
+                            <td>{{ record.time_out or '-' }}</td>
+                            <td>
+                                {% if record.status == 'present' %}
+                                <span class="badge bg-success">Present</span>
+                                {% elif record.status == 'late' %}
+                                <span class="badge bg-warning">Late</span>
+                                {% elif record.status == 'on_leave' %}
+                                <span class="badge bg-info">On Leave</span>
+                                {% else %}
+                                <span class="badge bg-danger">Absent</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">No attendance records found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-refresh attendance table every 30 seconds
+let lastRecordCount = {{ records|length }};
+
+function refreshAttendanceTable() {
+    const startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
+    
+    let url = '{{ url_for("admin.attendance") }}';
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    if (params.toString()) url += '?' + params.toString();
+    
+    fetch(url)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newTable = doc.querySelector('#attendanceTable');
+            
+            if (newTable) {
+                const currentTable = document.getElementById('attendanceTable');
+                const newRecordCount = newTable.querySelectorAll('tbody tr').length;
+                
+                // Only update if there are changes
+                if (newRecordCount !== lastRecordCount || currentTable.innerHTML !== newTable.innerHTML) {
+                    currentTable.innerHTML = newTable.innerHTML;
+                    lastRecordCount = newRecordCount;
+                    
+                    // Update last updated time
+                    const now = new Date();
+                    document.getElementById('lastUpdated').textContent = 
+                        'Last updated: ' + now.toLocaleTimeString();
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error refreshing attendance:', error);
+        });
+}
+
+// Refresh every 30 seconds
+setInterval(refreshAttendanceTable, 30000);
+
+// Initial update time
+document.getElementById('lastUpdated').textContent = 
+    'Last updated: ' + new Date().toLocaleTimeString();
+</script>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Request Attendance Correction - WorkVault{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Request Attendance Correction</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>When to use this:</strong>
+                        <ul class="mb-0">
+                            <li><strong>Missing Clock Out:</strong> You clocked in but forgot to clock out</li>
+                            <li><strong>Missing Day:</strong> You worked but forgot to clock in/out entirely</li>
+                            <li><strong>Wrong Time:</strong> Your clock in/out times are incorrect</li>
+                        </ul>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('attendance_corrections.request_correction') }}">
+                        <div class="mb-3">
+                            <label for="attendance_date" class="form-label">Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="attendance_date" name="attendance_date" 
+                                   max="{{ today }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="correction_type" class="form-label">Correction Type <span class="text-danger">*</span></label>
+                            <select class="form-select" id="correction_type" name="correction_type" required onchange="updateFields()">
+                                <option value="">Select type...</option>
+                                <option value="missing_clock_out">Missing Clock Out</option>
+                                <option value="missing_day">Missing Day (No Record)</option>
+                                <option value="wrong_time">Wrong Time</option>
+                            </select>
+                        </div>
+
+                        <div id="time_fields" style="display:none;">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="requested_clock_in" class="form-label">Clock In Time</label>
+                                    <input type="time" class="form-control" id="requested_clock_in" name="requested_clock_in">
+                                    <small class="text-muted">Standard: 08:00 AM</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="requested_clock_out" class="form-label">Clock Out Time</label>
+                                    <input type="time" class="form-control" id="requested_clock_out" name="requested_clock_out">
+                                    <small class="text-muted">Standard: 05:00 PM</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Reason <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="reason" name="reason" rows="4" 
+                                      placeholder="Explain why you need this correction..." required></textarea>
+                            <small class="text-muted">Be specific about what happened and why the correction is needed.</small>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('attendance_corrections.my_requests') }}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Back
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="bi bi-send"></i> Submit Request
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Set max date to today
+document.getElementById('attendance_date').max = new Date().toISOString().split('T')[0];
+
+function updateFields() {
+    const type = document.getElementById('correction_type').value;
+    const timeFields = document.getElementById('time_fields');
+    const clockIn = document.getElementById('requested_clock_in');
+    const clockOut = document.getElementById('requested_clock_out');
+    
+    if (type === 'missing_clock_out') {
+        timeFields.style.display = 'block';
+        clockIn.required = false;
+        clockIn.disabled = true;
+        clockOut.required = true;
+        clockOut.disabled = false;
+    } else if (type === 'missing_day' || type === 'wrong_time') {
+        timeFields.style.display = 'block';
+        clockIn.required = true;
+        clockIn.disabled = false;
+        clockOut.required = true;
+        clockOut.disabled = false;
+    } else {
+        timeFields.style.display = 'none';
+        clockIn.required = false;
+        clockOut.required = false;
+    }
+}
+</script>
+{% endblock %}

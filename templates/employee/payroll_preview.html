@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Payroll Preview - WorkVault{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-eye"></i> Payroll Preview</h2>
+        <a href="{{ url_for('employee.payroll') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Payroll
+        </a>
+    </div>
+
+    <!-- Warning Banner -->
+    {% if preview.get('is_draft') %}
+    <div class="alert alert-warning" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <strong>DRAFT PAYROLL - Under HR Review</strong><br>
+        {{ preview.draft_message }}
+        <br><br>
+        <strong>Action Needed:</strong> If you see any errors (missing days, wrong hours, etc.), 
+        <a href="{{ url_for('attendance_corrections.request_correction') }}" class="alert-link">
+            request an attendance correction NOW
+        </a> before HR finalizes this payroll!
+    </div>
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        <i class="bi bi-info-circle-fill"></i>
+        <strong>This is an ESTIMATED preview</strong> based on your current attendance for the period. 
+        Your actual paycheck may differ once HR processes the final payroll.
+    </div>
+    {% endif %}
+
+    <!-- Period Info -->
+    <div class="card mb-4">
+        <div class="card-header {% if preview.get('is_draft') %}bg-warning text-dark{% else %}bg-primary text-white{% endif %}">
+            <h5 class="mb-0">
+                <i class="bi bi-calendar-range"></i> 
+                Pay Period: {{ preview.period_name }} ({{ preview.period_start.strftime('%B %d') }} - {{ preview.period_end.strftime('%B %d, %Y') }})
+                {% if preview.get('is_draft') %}
+                <span class="badge bg-danger ms-2">DRAFT - NOT FINALIZED</span>
+                {% endif %}
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="text-center p-3 border rounded">
+                        <h6 class="text-muted mb-2">Days Present</h6>
+                        <h3 class="text-success mb-0">{{ preview.days_present }}</h3>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 border rounded">
+                        <h6 class="text-muted mb-2">Days Absent</h6>
+                        <h3 class="text-danger mb-0">{{ preview.days_absent }}</h3>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 border rounded">
+                        <h6 class="text-muted mb-2">Days on Leave</h6>
+                        <h3 class="text-info mb-0">{{ preview.days_on_leave }}</h3>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 border rounded">
+                        <h6 class="text-muted mb-2">Working Days So Far</h6>
+                        <h3 class="text-primary mb-0">{{ preview.working_days }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Earnings Section -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Earnings</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <td><strong>Basic Pay (Semi-monthly)</strong></td>
+                            <td class="text-end"><strong>₱{{ "%.2f"|format(preview.basic_pay) }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Overtime Pay</td>
+                            <td class="text-end">₱{{ "%.2f"|format(preview.overtime_pay) }}</td>
+                        </tr>
+                        <tr class="table-success">
+                            <td><strong>Gross Earnings</strong></td>
+                            <td class="text-end"><strong>₱{{ "%.2f"|format(preview.gross_earnings) }}</strong></td>
+                        </tr>
+                    </table>
+                    
+                    <hr>
+                    
+                    <div class="text-muted small">
+                        <p class="mb-1"><i class="bi bi-info-circle"></i> Rate Information:</p>
+                        <ul class="mb-0">
+                            <li>Monthly Salary: ₱{{ "%.2f"|format(preview.monthly_salary) }}</li>
+                            <li>Daily Rate: ₱{{ "%.2f"|format(preview.daily_rate) }}</li>
+                            <li>Hourly Rate: ₱{{ "%.2f"|format(preview.hourly_rate) }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deductions Section -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-dash-circle"></i> Deductions</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <td colspan="2" class="bg-light"><strong>Attendance Deductions</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Tardiness Deduction</td>
+                            <td class="text-end text-danger">₱{{ "%.2f"|format(preview.tardiness_deduction) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Undertime Deduction</td>
+                            <td class="text-end text-danger">₱{{ "%.2f"|format(preview.undertime_deduction) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Absent Deduction</td>
+                            <td class="text-end text-danger">₱{{ "%.2f"|format(preview.absent_deduction) }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="bg-light"><strong>Government Contributions</strong></td>
+                        </tr>
+                        <tr>
+                            <td>SSS Contribution</td>
+                            <td class="text-end text-danger">₱{{ "%.2f"|format(preview.sss_contribution) }}</td>
+                        </tr>
+                        <tr>
+                            <td>PhilHealth Contribution</td>
+                            <td class="text-end text-danger">₱{{ "%.2f"|format(preview.philhealth_contribution) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Pag-IBIG Contribution</td>
+                            <td class="text-end text-danger">₱{{ "%.2f"|format(preview.pagibig_contribution) }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="bg-light"><strong>Tax</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Withholding Tax</td>
+                            <td class="text-end text-danger">₱{{ "%.2f"|format(preview.withholding_tax) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Other Deductions</td>
+                            <td class="text-end text-danger">₱{{ "%.2f"|format(preview.other_deductions) }}</td>
+                        </tr>
+                        <tr class="table-danger">
+                            <td><strong>Total Deductions</strong></td>
+                            <td class="text-end"><strong>₱{{ "%.2f"|format(preview.total_deductions) }}</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Net Pay Summary -->
+    <div class="card {% if preview.get('is_draft') %}border-warning{% else %}border-primary{% endif %} mb-4">
+        <div class="card-header {% if preview.get('is_draft') %}bg-warning text-dark{% else %}bg-primary text-white{% endif %}">
+            <h4 class="mb-0 text-center">
+                <i class="bi bi-wallet2"></i> 
+                {% if preview.get('is_draft') %}
+                    DRAFT NET PAY
+                    <span class="badge bg-danger ms-2">UNDER REVIEW</span>
+                {% else %}
+                    ESTIMATED NET PAY
+                    <span class="badge bg-info text-dark ms-2">PREVIEW</span>
+                {% endif %}
+            </h4>
+        </div>
+        <div class="card-body text-center py-5">
+            <h1 class="display-3 {% if preview.get('is_draft') %}text-warning{% else %}text-primary{% endif %} mb-0">
+                ₱{{ "%.2f"|format(preview.net_pay) }}
+            </h1>
+            <p class="text-muted mt-3 mb-0">
+                {% if preview.get('is_draft') %}
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    This is the draft calculated by HR. Check it carefully and request corrections if needed!
+                {% else %}
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    This is an estimate. Final amount will be confirmed when HR processes payroll.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Breakdown Summary -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-calculator"></i> Calculation Breakdown</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="border rounded p-3">
+                        <h6 class="text-success"><i class="bi bi-plus-circle"></i> Gross Earnings</h6>
+                        <p class="mb-0">Basic Pay + Overtime</p>
+                        <h4 class="text-success">₱{{ "%.2f"|format(preview.gross_earnings) }}</h4>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="border rounded p-3">
+                        <h6 class="text-danger"><i class="bi bi-dash-circle"></i> Total Deductions</h6>
+                        <p class="mb-0">All deductions combined</p>
+                        <h4 class="text-danger">₱{{ "%.2f"|format(preview.total_deductions) }}</h4>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="border rounded p-3 bg-primary text-white">
+                        <h6><i class="bi bi-wallet2"></i> Net Pay (Estimate)</h6>
+                        <p class="mb-0">Take-home pay</p>
+                        <h4>₱{{ "%.2f"|format(preview.net_pay) }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Important Notes -->
+    <div class="alert {% if preview.get('is_draft') %}alert-danger{% else %}alert-warning{% endif %}" role="alert">
+        <h5><i class="bi bi-exclamation-triangle-fill"></i> Important Notes:</h5>
+        {% if preview.get('is_draft') %}
+        <ul class="mb-0">
+            <li><strong>This is a DRAFT payroll that HR has generated but NOT yet finalized.</strong></li>
+            <li><strong>Review it carefully!</strong> Check your days present, absent, and all deductions.</li>
+            <li><strong>If you see errors:</strong> Request an attendance correction NOW before HR finalizes this!</li>
+            <li>Once HR finalizes and releases this payroll, it cannot be changed easily.</li>
+            <li><strong>This is your chance to catch mistakes!</strong></li>
+            <li>
+                <a href="{{ url_for('attendance_corrections.request_correction') }}" class="alert-link">
+                    <i class="bi bi-pencil-square"></i> Click here to request attendance correction
+                </a>
+            </li>
+        </ul>
+        {% else %}
+        <ul class="mb-0">
+            <li>This preview is calculated based on your attendance records <strong>up to today</strong>.</li>
+            <li>If you have incomplete days (clocked in but not yet clocked out), they are not included.</li>
+            <li>Days remaining in the period are counted as absent unless you clock in/out for them.</li>
+            <li>The actual payroll amount will be determined by HR when they process the final payroll.</li>
+            <li>Government contributions are split semi-monthly (monthly amount ÷ 2).</li>
+            <li>Grace period of 10 minutes applies to tardiness calculations.</li>
+        </ul>
+        {% endif %}
+    </div>
+
+    <div class="text-center mb-4">
+        {% if preview.get('is_draft') %}
+        <a href="{{ url_for('attendance_corrections.request_correction') }}" class="btn btn-danger btn-lg">
+            <i class="bi bi-exclamation-triangle-fill"></i> Request Attendance Correction
+        </a>
+        <a href="{{ url_for('employee.attendance') }}" class="btn btn-outline-primary">
+            <i class="bi bi-clock-history"></i> View My Attendance
+        </a>
+        {% else %}
+        <a href="{{ url_for('employee.attendance') }}" class="btn btn-primary">
+            <i class="bi bi-clock-history"></i> View My Attendance
+        </a>
+        {% endif %}
+        <a href="{{ url_for('employee.payroll') }}" class="btn btn-secondary">
+            <i class="bi bi-cash-stack"></i> View Paid Payroll
+        </a>
+    </div>
+</div>
+{% endblock %}

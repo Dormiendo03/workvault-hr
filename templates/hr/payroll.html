@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Payroll - WorkVault{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Payroll Management</h2>
+        <a href="{{ url_for('hr.generate_payroll') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Generate Payroll
+        </a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('hr.payroll') }}" class="row g-3">
+                <div class="col-md-4">
+                    <label for="period_start" class="form-label">Period Start</label>
+                    <input type="date" class="form-control" id="period_start" name="period_start" 
+                           value="{{ period_start or '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="period_end" class="form-label">Period End</label>
+                    <input type="date" class="form-control" id="period_end" name="period_end" 
+                           value="{{ period_end or '' }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <a href="{{ url_for('hr.export_payroll', period_start=period_start, period_end=period_end) }}" 
+                       class="btn btn-success w-100" {% if not records %}disabled{% endif %}>
+                        <i class="bi bi-file-earmark-excel"></i> Export Excel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-cash-stack"></i> Payroll Records</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Department</th>
+                            <th>Period</th>
+                            <th>Base Salary</th>
+                            <th>Days Present</th>
+                            <th>Days Absent</th>
+                            <th>Deductions</th>
+                            <th>Net Salary</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr>
+                            <td>{{ record.users.name if record.users else 'N/A' }}</td>
+                            <td>{{ record.users.department if record.users else 'N/A' }}</td>
+                            <td>{{ record.period_start }} to {{ record.period_end }}</td>
+                            <td>${{ "%.2f"|format(record.base_salary) }}</td>
+                            <td>{{ record.days_present }}</td>
+                            <td>{{ record.days_absent }}</td>
+                            <td class="text-danger">${{ "%.2f"|format(record.deductions) }}</td>
+                            <td class="text-success"><strong>${{ "%.2f"|format(record.net_pay or record.net_salary or 0) }}</strong></td>
+                            <td>
+                                {% if record.status == 'draft' %}
+                                <span class="badge bg-secondary">Draft</span>
+                                {% elif record.status == 'finalized' %}
+                                <span class="badge bg-warning">Finalized</span>
+                                {% elif record.status == 'paid' %}
+                                <span class="badge bg-success">Released/Paid</span>
+                                {% else %}
+                                <span class="badge bg-info">{{ record.status|title }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.status == 'draft' %}
+                                <button class="btn btn-warning btn-sm" onclick="finalizePayroll({{ record.id }})">
+                                    <i class="bi bi-check-circle"></i> Finalize
+                                </button>
+                                <button class="btn btn-danger btn-sm ms-1" onclick="deletePayroll({{ record.id }}, '{{ record.users.name if record.users else 'Employee' }}')">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                                {% elif record.status == 'finalized' %}
+                                <button class="btn btn-success btn-sm" onclick="releasePayroll({{ record.id }}, '{{ record.users.name if record.users else 'Employee' }}')">
+                                    <i class="bi bi-send"></i> Release to Employee
+                                </button>
+                                <button class="btn btn-danger btn-sm ms-1" onclick="deletePayroll({{ record.id }}, '{{ record.users.name if record.users else 'Employee' }}')">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                                {% elif record.status == 'paid' %}
+                                <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Released</span>
+                                <button class="btn btn-danger btn-sm ms-1" onclick="deletePayroll({{ record.id }}, '{{ record.users.name if record.users else 'Employee' }}')">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="10" class="text-center text-muted">No payroll records found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function finalizePayroll(payrollId) {
+    if (!confirm('Finalize this payroll?\n\n⚠️ After finalizing:\n- HR review is complete\n- Ready to release to employee\n- Employee CANNOT see it yet')) {
+        return;
+    }
+    
+    fetch(`/hr/payroll/${payrollId}/finalize`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Error: ' + error.message);
+    });
+}
+
+function releasePayroll(payrollId, employeeName) {
+    if (!confirm(`Release payroll to ${employeeName}?\n\n✅ After releasing:\n- Employee can view and download payslip\n- Employee will receive notification\n- Status changes to "Paid"`)) {
+        return;
+    }
+    
+    fetch(`/hr/payroll/${payrollId}/release`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Error: ' + error.message);
+    });
+}
+
+function deletePayroll(payrollId, employeeName) {
+    if (!confirm(`⚠️ DELETE payroll for ${employeeName}?\n\nThis will permanently delete the payroll record.\n\n❌ This action CANNOT be undone!`)) {
+        return;
+    }
+    
+    fetch(`/hr/payroll/${payrollId}/delete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Error: ' + error.message);
+    });
+}
+</script>
+{% endblock %}

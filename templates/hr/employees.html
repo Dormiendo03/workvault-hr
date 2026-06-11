@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Directory - WorkVault{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-people-fill"></i> Employee Directory</h2>
+        <span class="text-muted">{{ today }}</span>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filters</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('hr.employees') }}" class="row g-3">
+                <!-- Search Box -->
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Search Employee</label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="search" 
+                           name="search" 
+                           placeholder="Search by name or email..."
+                           value="{{ search_query }}">
+                </div>
+
+                <!-- Department Dropdown -->
+                <div class="col-md-3">
+                    <label for="department" class="form-label">Department</label>
+                    <select class="form-select" id="department" name="department">
+                        <option value="">All Departments</option>
+                        {% for dept in all_departments %}
+                        <option value="{{ dept }}" {% if department_filter == dept %}selected{% endif %}>
+                            {{ dept }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Position Dropdown -->
+                <div class="col-md-3">
+                    <label for="position" class="form-label">Position</label>
+                    <select class="form-select" id="position" name="position">
+                        <option value="">All Positions</option>
+                        {% for pos in all_positions %}
+                        <option value="{{ pos }}" {% if position_filter == pos %}selected{% endif %}>
+                            {{ pos }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filter Buttons -->
+                <div class="col-md-2 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                    <a href="{{ url_for('hr.employees') }}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Employee Count Summary -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="alert alert-info">
+                <strong><i class="bi bi-info-circle"></i> Showing {{ employees|length }} employee(s)</strong>
+                {% if search_query or department_filter or position_filter %}
+                <span class="ms-2">
+                    (Filtered 
+                    {% if search_query %}- Search: "{{ search_query }}"{% endif %}
+                    {% if department_filter %}- Department: "{{ department_filter }}"{% endif %}
+                    {% if position_filter %}- Position: "{{ position_filter }}"{% endif %}
+                    )
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Employees Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-table"></i> Employees - Today's Status</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Status</th>
+                            <th>Employee Name</th>
+                            <th>Email</th>
+                            <th>Department</th>
+                            <th>Position</th>
+                            <th>Time In</th>
+                            <th>Time Out</th>
+                            <th>Monthly Salary</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for emp in employees %}
+                        <tr>
+                            <!-- Status Badge -->
+                            <td>
+                                {% if emp.status_today == 'present' %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Present
+                                </span>
+                                {% elif emp.status_today == 'late' %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-clock"></i> Late
+                                </span>
+                                {% elif emp.status_today == 'on_leave' %}
+                                <span class="badge bg-info">
+                                    <i class="bi bi-calendar-x"></i> On Leave
+                                </span>
+                                {% else %}
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-x-circle"></i> Absent
+                                </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Employee Info -->
+                            <td><strong>{{ emp.name }}</strong></td>
+                            <td>{{ emp.email }}</td>
+                            <td>
+                                <span class="badge bg-primary">{{ emp.department }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ emp.position }}</span>
+                            </td>
+
+                            <!-- Time In/Out -->
+                            <td>
+                                {% if emp.time_in and emp.time_in != '-' %}
+                                <span class="text-success">
+                                    <i class="bi bi-box-arrow-in-right"></i> {{ emp.time_in }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if emp.time_out and emp.time_out != '-' %}
+                                <span class="text-primary">
+                                    <i class="bi bi-box-arrow-right"></i> {{ emp.time_out }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Salary -->
+                            <td>₱{{ "%.2f"|format(emp.salary) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted">
+                                <i class="bi bi-search"></i> No employees found matching the filters
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="card mt-3">
+        <div class="card-body">
+            <h6><i class="bi bi-info-circle"></i> Status Legend:</h6>
+            <div class="d-flex gap-3 flex-wrap">
+                <div>
+                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Present</span>
+                    - Clocked in on time (before 8:10 AM)
+                </div>
+                <div>
+                    <span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Late</span>
+                    - Clocked in late (after 8:10 AM)
+                </div>
+                <div>
+                    <span class="badge bg-info"><i class="bi bi-calendar-x"></i> On Leave</span>
+                    - Approved leave today
+                </div>
+                <div>
+                    <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Absent</span>
+                    - Not clocked in today
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.badge {
+    font-size: 0.85rem;
+    padding: 0.4em 0.6em;
+}
+</style>
+{% endblock %}

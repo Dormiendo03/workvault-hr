@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}My Correction Requests - WorkVault{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-list-check"></i> My Correction Requests</h2>
+        <a href="{{ url_for('attendance_corrections.request_correction') }}" class="btn btn-warning">
+            <i class="bi bi-plus-circle"></i> New Request
+        </a>
+    </div>
+
+    {% if corrections %}
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Requested Times</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                            <th>Review Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for correction in corrections %}
+                        <tr>
+                            <td>{{ correction.attendance_date }}</td>
+                            <td>
+                                {% if correction.correction_type == 'missing_clock_out' %}
+                                <span class="badge bg-warning text-dark">Missing Clock Out</span>
+                                {% elif correction.correction_type == 'missing_day' %}
+                                <span class="badge bg-danger">Missing Day</span>
+                                {% else %}
+                                <span class="badge bg-info">Wrong Time</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if correction.requested_clock_in %}
+                                <strong>In:</strong> {{ correction.requested_clock_in[11:16] }}<br>
+                                {% endif %}
+                                {% if correction.requested_clock_out %}
+                                <strong>Out:</strong> {{ correction.requested_clock_out[11:16] }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ correction.reason[:50] }}{% if correction.reason|length > 50 %}...{% endif %}</small>
+                            </td>
+                            <td>
+                                {% if correction.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                                {% elif correction.status == 'approved' %}
+                                <span class="badge bg-success">Approved</span>
+                                {% else %}
+                                <span class="badge bg-danger">Rejected</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ correction.created_at[:10] if correction.created_at else 'N/A' }}</small>
+                            </td>
+                            <td>
+                                {% if correction.review_notes %}
+                                <small class="text-muted">{{ correction.review_notes[:50] }}{% if correction.review_notes|length > 50 %}...{% endif %}</small>
+                                {% else %}
+                                <small class="text-muted">-</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> You haven't submitted any correction requests yet.
+        <br><br>
+        <a href="{{ url_for('attendance_corrections.request_correction') }}" class="btn btn-warning">
+            <i class="bi bi-plus-circle"></i> Submit Your First Request
+        </a>
+    </div>
+    {% endif %}
+
+    <div class="mt-4">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-question-circle"></i> When to Request a Correction</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6><i class="bi bi-clock-history text-warning"></i> Missing Clock Out</h6>
+                        <p class="small">You clocked in but forgot to clock out at the end of your shift.</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6><i class="bi bi-calendar-x text-danger"></i> Missing Day</h6>
+                        <p class="small">You worked but forgot to clock in and out entirely for that day.</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6><i class="bi bi-exclamation-triangle text-info"></i> Wrong Time</h6>
+                        <p class="small">Your recorded clock in/out times are incorrect due to system error.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

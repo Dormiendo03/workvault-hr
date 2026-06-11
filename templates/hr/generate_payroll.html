@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Payroll - WorkVault{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-calculator"></i> Generate Payroll</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('hr.generate_payroll') }}">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="period_start" class="form-label">Period Start Date</label>
+                                <input type="date" class="form-control" id="period_start" name="period_start" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="period_end" class="form-label">Period End Date</label>
+                                <input type="date" class="form-control" id="period_end" name="period_end" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Select Employees</label>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="selectAll" onclick="toggleAll(this)">
+                                <label class="form-check-label" for="selectAll">
+                                    <strong>Select All</strong>
+                                </label>
+                            </div>
+                            <hr>
+                            <div style="max-height: 400px; overflow-y: auto;">
+                                {% for employee in employees %}
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input employee-checkbox" type="checkbox" 
+                                           name="employee_ids" value="{{ employee.id }}" id="emp{{ employee.id }}">
+                                    <label class="form-check-label" for="emp{{ employee.id }}">
+                                        {{ employee.name }} - {{ employee.department or 'No Department' }} 
+                                        (Salary: ${{ "%.2f"|format(employee.salary or 0) }})
+                                    </label>
+                                </div>
+                                {% else %}
+                                <p class="text-muted">No employees found</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-calculator"></i> Generate Payroll
+                            </button>
+                            <a href="{{ url_for('hr.payroll') }}" class="btn btn-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleAll(source) {
+    const checkboxes = document.querySelectorAll('.employee-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = source.checked;
+    });
+}
+
+// Set minimum dates
+document.getElementById('period_start').addEventListener('change', function() {
+    document.getElementById('period_end').min = this.value;
+});
+</script>
+{% endblock %}

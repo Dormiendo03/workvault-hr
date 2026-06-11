@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Attendance Corrections - WorkVault{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4"><i class="bi bi-clipboard-check"></i> Manage Attendance Corrections</h2>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('attendance_corrections.manage') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Filter by Status</label>
+                    <select class="form-select" id="status" name="status" onchange="this.form.submit()">
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if corrections %}
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Department</th>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Current Times</th>
+                            <th>Requested Times</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for correction in corrections %}
+                        <tr>
+                            <td>{{ correction.users.name if correction.users else 'N/A' }}</td>
+                            <td>{{ correction.users.department if correction.users else 'N/A' }}</td>
+                            <td>{{ correction.attendance_date }}</td>
+                            <td>
+                                {% if correction.correction_type == 'missing_clock_out' %}
+                                <span class="badge bg-warning text-dark">Missing Clock Out</span>
+                                {% elif correction.correction_type == 'missing_day' %}
+                                <span class="badge bg-danger">Missing Day</span>
+                                {% else %}
+                                <span class="badge bg-info">Wrong Time</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if correction.current_clock_in %}
+                                <strong>In:</strong> {{ correction.current_clock_in[11:16] }}<br>
+                                {% endif %}
+                                {% if correction.current_clock_out %}
+                                <strong>Out:</strong> {{ correction.current_clock_out[11:16] }}
+                                {% else %}
+                                <span class="text-danger">No clock out</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if correction.requested_clock_in %}
+                                <strong>In:</strong> {{ correction.requested_clock_in[11:16] }}<br>
+                                {% endif %}
+                                {% if correction.requested_clock_out %}
+                                <strong>Out:</strong> {{ correction.requested_clock_out[11:16] }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-link" data-bs-toggle="modal" data-bs-target="#reasonModal{{ correction.id }}">
+                                    View Reason
+                                </button>
+                                
+                                <!-- Reason Modal -->
+                                <div class="modal fade" id="reasonModal{{ correction.id }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Correction Reason</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p><strong>Employee:</strong> {{ correction.users.name if correction.users else 'N/A' }}</p>
+                                                <p><strong>Date:</strong> {{ correction.attendance_date }}</p>
+                                                <hr>
+                                                <p>{{ correction.reason }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if correction.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                                {% elif correction.status == 'approved' %}
+                                <span class="badge bg-success">Approved</span>
+                                {% else %}
+                                <span class="badge bg-danger">Rejected</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if correction.status == 'pending' %}
+                                <button class="btn btn-success btn-sm" onclick="approveCorrection({{ correction.id }})">
+                                    <i class="bi bi-check-circle"></i> Approve
+                                </button>
+                                <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal{{ correction.id }}">
+                                    <i class="bi bi-x-circle"></i> Reject
+                                </button>
+                                
+                                <!-- Reject Modal -->
+                                <div class="modal fade" id="rejectModal{{ correction.id }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Reject Correction Request</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p><strong>Employee:</strong> {{ correction.users.name if correction.users else 'N/A' }}</p>
+                                                <p><strong>Date:</strong> {{ correction.attendance_date }}</p>
+                                                <hr>
+                                                <div class="mb-3">
+                                                    <label for="reject_notes{{ correction.id }}" class="form-label">Reason for Rejection <span class="text-danger">*</span></label>
+                                                    <textarea class="form-control" id="reject_notes{{ correction.id }}" rows="3" 
+                                                              placeholder="Explain why this request is being rejected..." required></textarea>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="button" class="btn btn-danger" onclick="rejectCorrection({{ correction.id }})">
+                                                    Reject Request
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <small class="text-muted">
+                                    {% if correction.review_notes %}
+                                    {{ correction.review_notes[:30] }}...
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No correction requests found for the selected filter.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function approveCorrection(correctionId) {
+    if (!confirm('Are you sure you want to approve this correction? The attendance record will be updated.')) {
+        return;
+    }
+    
+    fetch(`/attendance-corrections/${correctionId}/approve`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'review_notes=Approved by HR'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    });
+}
+
+function rejectCorrection(correctionId) {
+    const notes = document.getElementById(`reject_notes${correctionId}`).value;
+    
+    if (!notes.trim()) {
+        alert('Please provide a reason for rejection');
+        return;
+    }
+    
+    fetch(`/attendance-corrections/${correctionId}/reject`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `review_notes=${encodeURIComponent(notes)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    });
+}
+</script>
+{% endblock %}

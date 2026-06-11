@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Employee - WorkVault{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-pencil"></i> Edit Employee</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.edit_employee', user_id=user.id) }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="{{ user.name }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="{{ user.email }}" disabled>
+                            <small class="text-muted">Email cannot be changed</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="department" class="form-label">Department</label>
+                            <input type="text" class="form-control" id="department" name="department" 
+                                   value="{{ user.department or '' }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="salary" class="form-label">Monthly Salary</label>
+                            <input type="number" step="0.01" class="form-control" id="salary" name="salary" 
+                                   value="{{ user.salary or 0 }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="leave_balance" class="form-label">Leave Balance (days)</label>
+                            <input type="number" class="form-control" id="leave_balance" name="leave_balance" 
+                                   value="{{ user.leave_balance }}" required>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active" 
+                                   {% if user.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">
+                                Active Employee
+                            </label>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Update Employee
+                            </button>
+                            <a href="{{ url_for('admin.employees') }}" class="btn btn-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
